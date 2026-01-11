@@ -6,6 +6,12 @@ import { StatsOverview } from '@/components/dashboard/stats-overview';
 import { AcademicTasksList } from '@/components/tasks/academic-tasks-list';
 import { SecondaryTasksList } from '@/components/tasks/secondary-tasks-list';
 import { AcademicTask, SecondaryTask } from '@/lib/types';
+import { 
+  getAcademicTasks, 
+  getSecondaryTasks, 
+  updateAcademicTask, 
+  updateSecondaryTask 
+} from '@/lib/storage';
 import { isToday, isThisWeek } from 'date-fns';
 
 export default function Home() {
@@ -13,59 +19,28 @@ export default function Home() {
   const [secondaryTasks, setSecondaryTasks] = useState<SecondaryTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchTasks = async () => {
-    try {
-      const [academicRes, secondaryRes] = await Promise.all([
-        fetch('/api/academic-tasks'),
-        fetch('/api/secondary-tasks'),
-      ]);
-
-      const academic = await academicRes.json();
-      const secondary = await secondaryRes.json();
-
+  const loadTasks = () => {
+    if (typeof window !== 'undefined') {
+      const academic = getAcademicTasks();
+      const secondary = getSecondaryTasks();
       setAcademicTasks(academic);
       setSecondaryTasks(secondary);
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTasks();
+    loadTasks();
   }, []);
 
-  const handleAcademicToggle = async (id: string, completed: boolean) => {
-    try {
-      const response = await fetch('/api/academic-tasks', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, completed }),
-      });
-
-      if (response.ok) {
-        fetchTasks();
-      }
-    } catch (error) {
-      console.error('Error updating academic task:', error);
-    }
+  const handleAcademicToggle = (id: string, completed: boolean) => {
+    updateAcademicTask(id, { completed });
+    loadTasks();
   };
 
-  const handleSecondaryToggle = async (id: string, completed: boolean) => {
-    try {
-      const response = await fetch('/api/secondary-tasks', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, completed }),
-      });
-
-      if (response.ok) {
-        fetchTasks();
-      }
-    } catch (error) {
-      console.error('Error updating secondary task:', error);
-    }
+  const handleSecondaryToggle = (id: string, completed: boolean) => {
+    updateSecondaryTask(id, { completed });
+    loadTasks();
   };
 
   const pendingAcademicTasks = academicTasks.filter((task) => !task.completed);
